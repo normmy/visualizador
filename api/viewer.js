@@ -514,7 +514,7 @@ function createMap(conf) {
   }
 }
 
-/**Generaates a GetFreature information event
+/**Generaates a GetFreature information onclick event
 */
 function enableGetFeature()
 {
@@ -522,7 +522,7 @@ function enableGetFeature()
 	map.events.register('click', map, function (e) {
  					mouseLoc = map.getLonLatFromPixel(e.xy);
                     document.getElementById('responseData').innerHTML = "Loading... please wait...";
-		var format = 'image/png';
+					var format = 'image/png';
                     var params = {
                         REQUEST: "GetFeatureInfo",
                         EXCEPTIONS: "application/vnd.ogc.se_xml",
@@ -566,9 +566,10 @@ function enableGetFeature()
 
 
 }
+// Global vars for popup use
 var popup;
 var mouseLoc;
-// sets the response provided into the popup
+// parse the response provided into the popup
             function setHTML(response){
  			var lines = response.responseText.split('\n');
 			var depto,km2;
@@ -601,10 +602,8 @@ depto + "</h2><hr/>" +
                                         null,
                                         true);
         popup.setBackgroundColor("#bcd2ee");
-//      popup.setOpacity(.7);
         map.addPopup(popup);
                 document.getElementById('responseData').innerHTML = popup_info;   
-;
 
             };
             
@@ -619,9 +618,8 @@ init = function () {
   conf.getUrlParameters();
   createLayout(conf);
   createMap(conf);
- //loadControls(conf);
-//alert('aqui');
-enableGetFeature();
+//method added by Norman Huasebe
+  enableGetFeature();
 };
 
 window.onload = init;
