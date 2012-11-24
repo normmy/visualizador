@@ -586,8 +586,9 @@ var mouseLoc;
             }
         
 
-				var popup_info = "<h2>" + depto + "</h2><hr/>" +
-                        "<b>&aacute;rea:</b> " + km2 +
+				var popup_info = "<img alt=\"Logotipo de GeoBolivia\" src=\"img/geologo_16x16.png\"><h2>" + 
+depto + "</h2><hr/>" +
+                        "<b>&aacute;rea:</b> " + parseFloat(km2).toFixed(3) +
                         " km2 <hr/>";
   				if (popup != null) {
             		popup.destroy();
@@ -595,7 +596,7 @@ var mouseLoc;
 		        }
         		popup = new OpenLayers.Popup.AnchoredBubble("Informion de DEpartamento",
                                         mouseLoc,
-                                        new OpenLayers.Size(250,220),
+                                        new OpenLayers.Size(250,120),
                                         popup_info,
                                         null,
                                         true);
