@@ -513,14 +513,14 @@ function createMap(conf) {
     request = loadWmc(conf, 'http:');
   }
 }
-
-/**Generaates a GetFreature information event
+ 
+/**
+* Creates a GetFreature information event
 */
 function enableGetFeature()
 {
 
 	map.events.register('click', map, function (e) {
- 					mouseLoc = map.getLonLatFromPixel(e.xy);
                     document.getElementById('responseData').innerHTML = "Loading... please wait...";
 		var format = 'image/png';
                     var params = {
@@ -528,10 +528,10 @@ function enableGetFeature()
                         EXCEPTIONS: "application/vnd.ogc.se_xml",
                         BBOX: map.getExtent().toBBOX(),
                         SERVICE: "WMS",
-                        INFO_FORMAT: 'text/plain',
-                        QUERY_LAYERS: 'departamentos',
+                        INFO_FORMAT: 'text/html',
+                        QUERY_LAYERS: map.layers[0].params.LAYERS,
                         FEATURE_COUNT: 50,
-                        Layers: 'departamentos',
+                        Layers: 'AtlasElectoral:departamentos',
                         WIDTH: map.size.w,
                         HEIGHT: map.size.h,
                         format: 'image/png',
@@ -566,47 +566,125 @@ function enableGetFeature()
 
 
 }
-var popup;
-var mouseLoc;
-// sets the response provided into the popup
-            function setHTML(response){
- 			var lines = response.responseText.split('\n');
-			var depto,km2;
-			for (var lcv = 0; lcv < (lines.length); lcv++) {
-		            var vals = lines[lcv].replace(/^\s*/,'').replace(/\s*$/,'').replace(/ = /,"=").replace(/'/g,'').split('=');
-            		if (vals[1] == "") {
-                		vals[1] = "Desconocido";
-                    }
 
-            		if (vals[0].indexOf('nombre') != -1 ) {
-                		depto = vals[1];
-            		} else if (vals[0].indexOf('area_km2') != -1 ) {
-                		km2 = vals[1];
-					}
-            }
-        
+// sets the HTML provided into the responseData element
+            function setHTML(evt){
+                document.getElementById('responseData').innerHTML = response.responseText;
+ var text;
+                var match = evt.responseText.match(/<body[^>]*>([\s\S]*)<\/body>/);
+                if (match && !match[1].match(/^\s*$/)) {
+                    text = match[1];
+                } else {
 
-				var popup_info = "<h2>" + depto + "</h2><hr/>" +
-                        "<b>&aacute;rea:</b> " + km2 +
-                        " km2 <hr/>";
-  				if (popup != null) {
-            		popup.destroy();
-            		popup = null;
-		        }
-        		popup = new OpenLayers.Popup.AnchoredBubble("Informion de DEpartamento",
-                                        mouseLoc,
-                                        new OpenLayers.Size(250,220),
-                                        popup_info,
-                                        null,
-                                        true);
-        popup.setBackgroundColor("#bcd2ee");
-//      popup.setOpacity(.7);
-        map.addPopup(popup);
-                document.getElementById('responseData').innerHTML = popup_info;   
-;
+                    text = "No  features in that area.<br>";
+                }
+                //var popupId = evt.xy.x + "," + evt.xy.y;
+                var popup;/// = popups[popupId];
+                //if (!popup || !popup.map) {
+                    popup = new OpenLayers.Popup.FramedCloud(
+                        popupId, 
+                        map.getLonLatFromPixel(evt.xy),
+                        null,
+                        " ",
+                        null,
+                        true,
+                        function(evt) {
+                            delete popups[this.id];
+                            this.hide();
+                            OpenLayers.Event.stop(evt);
+                        }
+                    );
+                    popups[popupId] = popup;
+                    map.addPopup(popup, true);
+                }
+                popup.setContentHTML(popup.contentHTML + text);
+                popup.show();
 
             };
             
+function otheroption(){
+var control;
+control = new OpenLayers.Control.WMTSGetFeatureInfo({
+        drillDown: true,
+        queryVisible: true,
+        eventListeners: {
+            getfeatureinfo: function(evt) {
+                var text;
+                var match = evt.text.match(/<body[^>]*>([\s\S]*)<\/body>/);
+                if (match && !match[1].match(/^\s*$/)) {
+                    text = match[1];
+                } else {
+                    text = "No " + evt.layer.name + " features in that area.<br>";
+                }
+                var popupId = evt.xy.x + "," + evt.xy.y;
+                var popup = popups[popupId];
+                if (!popup || !popup.map) {
+                    popup = new OpenLayers.Popup.FramedCloud(
+                        popupId, 
+                        map.getLonLatFromPixel(evt.xy),
+                        null,
+                        " ",
+                        null,
+                        true,
+                        function(evt) {
+                            delete popups[this.id];
+                            this.hide();
+                            OpenLayers.Event.stop(evt);
+                        }
+                    );
+                    popups[popupId] = popup;
+                    map.addPopup(popup, true);
+                }
+                popup.setContentHTML(popup.contentHTML + text);
+                popup.show();
+            }
+        }
+    });
+     map.addControl(control);
+    control.activate();
+	alert('cargando');
+}
+
+
+function lastOption(){
+
+var infoControls = {
+            click: new OpenLayers.Control.WMSGetFeatureInfo({
+                url: 'http://mapas.vicepresidencia.gob.bo/geoserver/AtlasElectoral/wms', 
+                title: 'Identify features by clicking',
+                layers: [departamentos],
+                queryVisible: true
+            }),
+            hover: new OpenLayers.Control.WMSGetFeatureInfo({
+                url: 'http://demo.opengeo.org/geoserver/wms', 
+                title: 'Identify features by clicking',
+                layers: [water],
+                hover: true,
+                // defining a custom format options here
+                formatOptions: {
+                    typeName: 'water_bodies', 
+                    featureNS: 'http://www.openplans.org/topp'
+                },
+                queryVisible: true
+            })
+        };
+
+//        map.addLayers([political, roads, cities, water, highlightLayer]); 
+        for (var i in infoControls) { 
+            infoControls[i].events.register("getfeatureinfo", this, showInfo);
+            map.addControl(infoControls[i]); 
+        }
+  infoControls.click.activate();
+}
+function showInfo(evt) {
+        if (evt.features && evt.features.length) {
+             highlightLayer.destroyFeatures();
+             highlightLayer.addFeatures(evt.features);
+             highlightLayer.redraw();
+        } else {
+            document.getElementById('responseText').innerHTML = evt.text;
+        }
+    }
 
 /**
  * Principal function launched on "onLoad" event
@@ -618,9 +696,9 @@ init = function () {
   conf.getUrlParameters();
   createLayout(conf);
   createMap(conf);
- //loadControls(conf);
-//alert('aqui');
-enableGetFeature();
+  //enableGetFeature();
+//otheroption();
+//lastoption();
 };
 
 window.onload = init;
